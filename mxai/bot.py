@@ -4,12 +4,13 @@ One MXAI = one Matrix user + one AI backend process.
 Messages from Matrix rooms are forwarded to the adapter; adapter
 responses are sent back to the originating room.
 
-v0.1.1
+v0.1.2
 """
 
 import asyncio
 import collections
 import time
+from urllib.parse import urlparse
 
 from nio import (
     AsyncClient,
@@ -60,6 +61,7 @@ class MXAI:
         self.start_time = time.time()
 
         await self._authenticate()
+        self.server_name = self.matrix_client.user_id.split(":", 1)[1]
         self._setup_matrix_callbacks()
         self._spawn_adapter()
 
@@ -143,9 +145,10 @@ class MXAI:
                 "Use --register or --password."
             )
 
+        server_name = urlparse(self.homeserver).hostname
         self.matrix_client = AsyncClient(
             self.homeserver,
-            f"@{self.username}:localhost",
+            f"@{self.username}:{server_name}",
         )
         print(f"  [{self.name}] logging in as @{self.username}", flush=True)
         resp = await login(self.matrix_client, self.password)
@@ -165,7 +168,7 @@ class MXAI:
         room = self.room
         # If it's already a full alias or room ID, use as-is
         if not room.startswith("#") and not room.startswith("!"):
-            room = f"#{room}:localhost"
+            room = f"#{room}:{self.server_name}"
 
         print(f"  [{self.name}] joining {room}...", flush=True)
         resp = await self.matrix_client.join(room)
@@ -283,7 +286,7 @@ class MXAI:
             if not room:
                 return
             if not room.startswith("#") and not room.startswith("!"):
-                room = f"#{room}:localhost"
+                room = f"#{room}:{self.server_name}"
             print(f"  [{self.name}] joining {room}", flush=True)
             resp = await self.matrix_client.join(room)
             if hasattr(resp, "room_id"):
@@ -296,7 +299,7 @@ class MXAI:
             if not user:
                 return
             if not user.startswith("@"):
-                user = f"@{user}:localhost"
+                user = f"@{user}:{self.server_name}"
             print(f"  [{self.name}] inviting {user} to {room_id}", flush=True)
             await self.matrix_client.room_invite(room_id, user)
 
@@ -319,7 +322,7 @@ class MXAI:
             user = parts2[0]
             message = parts2[1]
             if not user.startswith("@"):
-                user = f"@{user}:localhost"
+                user = f"@{user}:{self.server_name}"
             print(f"  [{self.name}] DM to {user}: {message[:80]}", flush=True)
 
             # Find existing DM room or create one
@@ -425,7 +428,7 @@ Your response is sent to the room automatically. Just write naturally — your t
 
 ## Room commands
 You can perform room actions by putting these commands on their own line:
-/join <room>    — join a room (e.g. /join General, /join #dev:localhost)
+/join <room>    — join a room (e.g. /join General, /join #dev:{self.server_name})
 /leave          — leave the current room
 /invite <user>  — invite a user to the current room (e.g. /invite steve)
 /msg <user> <message> — send a private message (e.g. /msg steve Hey, quick question)
