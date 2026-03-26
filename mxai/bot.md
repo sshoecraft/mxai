@@ -1,12 +1,12 @@
-# bot.py — MatrixBot
+# bot.py — MXAI
 
 ## Purpose
-Core class that bridges a Matrix user account to an AI adapter subprocess. One MatrixBot = one Matrix user + one AI backend process.
+Core class that bridges a Matrix user account to an AI adapter subprocess. One MXAI = one Matrix user + one AI backend process.
 
 ## Architecture
 
 ```
-Matrix (Synapse)  ←→  MatrixBot  ←→  Adapter subprocess (Claude/Shepherd)
+Matrix (Synapse)  ←→  MXAI  ←→  Adapter subprocess (Claude/Shepherd)
        nio.AsyncClient     │           threading + subprocess.Popen
                            │
                      response_queue (deque of room_ids)

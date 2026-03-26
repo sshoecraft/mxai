@@ -18,8 +18,9 @@ class ClaudeAdapter(Adapter):
 
     backend_name = "claude"
 
-    def __init__(self, system_prompt: str, model: str = None, effort: str = None):
-        super().__init__(system_prompt, model, effort)
+    def __init__(self, system_prompt: str, model: str = None, effort: str = None,
+                 provider: str = None):
+        super().__init__(system_prompt, model, effort, provider=provider)
         self.session_id = str(uuid.uuid4())
 
     def build_command(self) -> list:

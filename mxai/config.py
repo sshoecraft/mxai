@@ -1,10 +1,10 @@
-"""XDG-compliant config loading for matrixbot.
+"""XDG-compliant config loading for mxai.
 
 Config files are TOML, one per bot, stored in:
-    ~/.config/matrixbot/bots/{name}.toml
+    ~/.config/mxai/bots/{name}.toml
 
 Credentials (access tokens) stored in:
-    ~/.config/matrixbot/credentials/{username}.json
+    ~/.config/mxai/credentials/{username}.json
 
 v0.1.0
 """
@@ -14,9 +14,9 @@ import tomllib
 
 
 def get_config_dir() -> str:
-    """Return the matrixbot config directory, respecting XDG_CONFIG_HOME."""
+    """Return the mxai config directory, respecting XDG_CONFIG_HOME."""
     xdg = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
-    return os.path.join(xdg, "matrixbot")
+    return os.path.join(xdg, "mxai")
 
 
 def get_bots_dir() -> str:

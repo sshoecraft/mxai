@@ -11,7 +11,7 @@ Synapse uses a two-step registration:
 If the user already exists, `register()` raises RuntimeError with "User ID already taken" — caller can catch this and fall through to login.
 
 ## Credential storage
-- Path: `~/.config/matrixbot/credentials/{username}.json`
+- Path: `~/.config/mxai/credentials/{username}.json`
 - Contents: `{user_id, access_token, device_id, homeserver}`
 - Permissions: 0600 (user-read-only)
 - Bot checks for saved creds on startup → if found, skips registration and login entirely

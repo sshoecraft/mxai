@@ -23,6 +23,8 @@ class ShepherdAdapter(Adapter):
             "--json",
             "--system-prompt", self.system_prompt,
         ]
+        if self.provider:
+            cmd.extend(["--provider", self.provider])
         if self.model:
             cmd.extend(["--model", self.model])
         if self.effort:

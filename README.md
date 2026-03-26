@@ -1,4 +1,4 @@
-# matrixbot
+# mxai
 
 Connect AI CLI tools to Matrix as regular chat participants. Bots register as standard Matrix users, join rooms, respond to messages, and use tools — just like any other user in the room.
 
@@ -16,7 +16,7 @@ Connect AI CLI tools to Matrix as regular chat participants. Bots register as st
 ## Installation
 
 ```bash
-pip install matrixbot
+pip install mxai
 ```
 
 Or from source:
@@ -37,19 +37,19 @@ pip install -e .
 
 ```bash
 # Start a bot with auto-registration
-matrixbot start --server http://your-matrix-server:8008 \
+mxai start --server http://your-matrix-server:8008 \
   --name mybot --backend claude \
   --role "You are a helpful assistant" \
   --register
 
 # Start with existing credentials
-matrixbot start --server http://your-matrix-server:8008 \
+mxai start --server http://your-matrix-server:8008 \
   --name mybot --backend claude \
   --role "You are a helpful assistant" \
   --username mybot --password secret
 
 # Or run directly from source
-python3 -m matrixbot start --server http://your-matrix-server:8008 \
+python3 -m mxai start --server http://your-matrix-server:8008 \
   --name mybot --backend claude \
   --role "You are a helpful assistant" \
   --register
@@ -60,16 +60,16 @@ Once running, invite the bot to a room from your Matrix client (e.g. Element) an
 ## Usage
 
 ```
-matrixbot start [PROFILE] [options]    Start a bot
-matrixbot backends                     List available AI backends
-matrixbot version                      Show version
+mxai start [PROFILE] [options]    Start a bot
+mxai backends                     List available AI backends
+mxai version                      Show version
 ```
 
 ### Start Options
 
 | Flag | Description |
 |------|-------------|
-| `PROFILE` | Load config from `~/.config/matrixbot/bots/<profile>.toml` |
+| `PROFILE` | Load config from `~/.config/mxai/bots/<profile>.toml` |
 | `--server URL` | Matrix homeserver URL |
 | `--name NAME` | Bot display name / username |
 | `--backend BACKEND` | AI backend (`claude`, `shepherd`) |
@@ -81,13 +81,14 @@ matrixbot version                      Show version
 | `--model MODEL` | Model name (e.g. `sonnet`, `opus`, `gpt-4o`) |
 | `--effort LEVEL` | Effort/reasoning level (`low`, `medium`, `high`, `max`) |
 | `--room ROOM` | Room to auto-join (default: `Lobby`) |
+| `--provider PROVIDER` | AI provider for the backend (e.g. `gemini`, `anthropic`, `openai`) |
 
 ## Config Files
 
-One TOML file per bot in `~/.config/matrixbot/bots/`:
+One TOML file per bot in `~/.config/mxai/bots/`:
 
 ```toml
-# ~/.config/matrixbot/bots/architect.toml
+# ~/.config/mxai/bots/architect.toml
 server = "http://your-matrix-server:8008"
 name = "architect"
 backend = "claude"
@@ -99,7 +100,7 @@ register = true
 
 CLI args override config file values. Config is optional — everything can be specified via CLI.
 
-Credentials (access tokens) are saved to `~/.config/matrixbot/credentials/` after first login and reused on subsequent runs.
+Credentials (access tokens) are saved to `~/.config/mxai/credentials/` after first login and reused on subsequent runs.
 
 ## Room Commands
 
@@ -119,15 +120,15 @@ Bots can perform Matrix actions by including commands on their own line in respo
 Run bots as system services:
 
 ```ini
-# /etc/systemd/system/matrixbot@.service
+# /etc/systemd/system/mxai@.service
 [Unit]
-Description=MatrixBot %i
+Description=mxai %i
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/matrixbot start %i
+ExecStart=/usr/local/bin/mxai start %i
 Restart=on-failure
 RestartSec=10
 User=steve
@@ -137,7 +138,7 @@ WantedBy=multi-user.target
 ```
 
 ```bash
-systemctl enable --now matrixbot@architect
+systemctl enable --now mxai@architect
 ```
 
 ## Backends
@@ -148,7 +149,7 @@ Uses Claude Code CLI via `--print --input-format stream-json --output-format str
 
 ### Shepherd
 
-Uses Shepherd's JSON frontend (`--json`). Structured JSON-lines protocol with tool visibility, turn tracking, and clean response boundaries. Model selection via `--model`, reasoning level via `--effort` (maps to `--reasoning`).
+Uses Shepherd's JSON frontend (`--json`). Structured JSON-lines protocol with tool visibility, turn tracking, and clean response boundaries. Model selection via `--model`, reasoning level via `--effort` (maps to `--reasoning`). Supports multiple AI providers via `--provider` (e.g. gemini, anthropic, openai).
 
 ## License
 

@@ -14,10 +14,12 @@ from abc import ABC, abstractmethod
 class Adapter(ABC):
     """Base class for AI backend adapters."""
 
-    def __init__(self, system_prompt: str, model: str = None, effort: str = None):
+    def __init__(self, system_prompt: str, model: str = None, effort: str = None,
+                 provider: str = None):
         self.system_prompt = system_prompt
         self.model = model
         self.effort = effort
+        self.provider = provider
         self.proc = None
         self.on_response = None    # callback: fn(text: str)
         self.on_tool_use = None    # callback: fn(name: str, desc: str)

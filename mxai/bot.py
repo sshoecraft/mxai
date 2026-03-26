@@ -1,6 +1,6 @@
-"""MatrixBot — bridges a Matrix account to an AI adapter subprocess.
+"""MXAI — bridges a Matrix account to an AI adapter subprocess.
 
-One MatrixBot = one Matrix user + one AI backend process.
+One MXAI = one Matrix user + one AI backend process.
 Messages from Matrix rooms are forwarded to the adapter; adapter
 responses are sent back to the originating room.
 
@@ -22,13 +22,14 @@ from .adapters import get_adapter
 from .credentials import register, login, save_credentials, load_credentials
 
 
-class MatrixBot:
+class MXAI:
     """A single AI participant on Matrix."""
 
     def __init__(self, homeserver: str, name: str, backend: str, role: str,
                  username: str = None, password: str = None,
                  do_register: bool = False, model: str = None,
-                 effort: str = None, room: str = "Lobby"):
+                 effort: str = None, room: str = "General",
+                 provider: str = None):
         self.homeserver = homeserver
         self.name = name
         self.backend = backend
@@ -39,6 +40,7 @@ class MatrixBot:
         self.model = model
         self.effort = effort
         self.room = room
+        self.provider = provider
 
         self.matrix_client = None
         self.adapter = None
@@ -214,7 +216,8 @@ class MatrixBot:
         """Create and start the AI adapter subprocess."""
         system_prompt = self._build_system_prompt()
         self.adapter = get_adapter(self.backend, system_prompt,
-                                   model=self.model, effort=self.effort)
+                                   model=self.model, effort=self.effort,
+                                   provider=self.provider)
 
         self.adapter.on_response = self._on_adapter_response
         self.adapter.on_tool_use = self._on_adapter_tool_use
@@ -422,7 +425,7 @@ Your response is sent to the room automatically. Just write naturally — your t
 
 ## Room commands
 You can perform room actions by putting these commands on their own line:
-/join <room>    — join a room (e.g. /join Lobby, /join #dev:localhost)
+/join <room>    — join a room (e.g. /join General, /join #dev:localhost)
 /leave          — leave the current room
 /invite <user>  — invite a user to the current room (e.g. /invite steve)
 /msg <user> <message> — send a private message (e.g. /msg steve Hey, quick question)

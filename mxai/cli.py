@@ -1,10 +1,10 @@
-"""matrixbot CLI — connect AI backends to Matrix.
+"""mxai CLI — connect AI backends to Matrix.
 
 Usage:
-    matrixbot start [PROFILE] [--server URL] [--name NAME] [--backend BACKEND]
+    mxai start [PROFILE] [--server URL] [--name NAME] [--backend BACKEND]
                     [--role ROLE] [--register] [--username U] [--password P]
-    matrixbot backends
-    matrixbot version
+    mxai backends
+    mxai version
 
 v0.1.1
 """
@@ -16,7 +16,7 @@ import sys
 
 from . import VERSION
 from .adapters import list_backends
-from .bot import MatrixBot
+from .bot import MXAI
 from .config import load_bot_config, merge_config
 
 
@@ -28,7 +28,7 @@ def cmd_start(args):
         file_config = load_bot_config(args.profile)
         if not file_config:
             print(f"No config file found for profile '{args.profile}'")
-            print(f"Checked: ~/.config/matrixbot/bots/{args.profile}.toml")
+            print(f"Checked: ~/.config/mxai/bots/{args.profile}.toml")
 
     # CLI overrides
     cli_args = {
@@ -42,6 +42,7 @@ def cmd_start(args):
         "model": args.model,
         "effort": args.effort,
         "room": args.room,
+        "provider": args.provider,
     }
 
     config = merge_config(file_config, cli_args)
@@ -65,7 +66,7 @@ def cmd_start(args):
               + ", ".join(f"--{f}" for f in missing))
         sys.exit(1)
 
-    bot = MatrixBot(
+    bot = MXAI(
         homeserver=config["server"],
         name=config["name"],
         backend=config["backend"],
@@ -75,13 +76,16 @@ def cmd_start(args):
         do_register=config.get("register", False),
         model=config.get("model"),
         effort=config.get("effort"),
-        room=config.get("room", "Lobby"),
+        room=config.get("room", "General"),
+        provider=config.get("provider"),
     )
 
-    print(f"matrixbot v{VERSION}", flush=True)
+    print(f"mxai v{VERSION}", flush=True)
     print(f"  server: {config['server']}", flush=True)
     print(f"  name: {config['name']}", flush=True)
     print(f"  backend: {config['backend']}", flush=True)
+    if config.get("provider"):
+        print(f"  provider: {config['provider']}", flush=True)
     if config.get("model"):
         print(f"  model: {config['model']}", flush=True)
     if config.get("effort"):
@@ -127,12 +131,12 @@ def cmd_backends(args):
 
 def cmd_version(args):
     """Show version."""
-    print(f"matrixbot v{VERSION}")
+    print(f"mxai v{VERSION}")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="matrixbot",
+        prog="mxai",
         description="Connect AI CLI tools to Matrix as regular chat participants",
     )
     sub = parser.add_subparsers(dest="command")
@@ -141,7 +145,7 @@ def main():
     start_parser = sub.add_parser("start", help="Start a bot")
     start_parser.add_argument(
         "profile", nargs="?", default=None,
-        help="Bot profile name (loads ~/.config/matrixbot/bots/<profile>.toml)")
+        help="Bot profile name (loads ~/.config/mxai/bots/<profile>.toml)")
     start_parser.add_argument("--server", "-s", default=None,
                               help="Matrix homeserver URL")
     start_parser.add_argument("--name", "-n", default=None,
@@ -163,7 +167,9 @@ def main():
     start_parser.add_argument("--effort", "-e", default=None,
                               help="Effort/reasoning level (low, medium, high, max)")
     start_parser.add_argument("--room", default=None,
-                              help="Room to auto-join (default: Lobby)")
+                              help="Room to auto-join (default: General)")
+    start_parser.add_argument("--provider", default=None,
+                              help="AI provider for the backend (e.g. gemini, anthropic, openai)")
 
     # backends
     sub.add_parser("backends", help="List available AI backends")

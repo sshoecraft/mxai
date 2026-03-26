@@ -4,7 +4,7 @@
 Loads per-bot TOML config files from XDG-compliant paths. Config is optional — all values can come from CLI args.
 
 ## File locations
-- Config dir: `$XDG_CONFIG_HOME/matrixbot/` (default: `~/.config/matrixbot/`)
+- Config dir: `$XDG_CONFIG_HOME/mxai/` (default: `~/.config/mxai/`)
 - Bot configs: `bots/{name}.toml`
 - Credentials: `credentials/{username}.json`
 

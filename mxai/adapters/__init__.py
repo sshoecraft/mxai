@@ -13,13 +13,13 @@ ADAPTERS = {
 
 
 def get_adapter(backend: str, system_prompt: str, model: str = None,
-                effort: str = None):
+                effort: str = None, provider: str = None):
     """Create an adapter instance for the given backend."""
     cls = ADAPTERS.get(backend)
     if cls is None:
         available = ", ".join(sorted(ADAPTERS.keys()))
         raise ValueError(f"Unknown backend '{backend}'. Available: {available}")
-    return cls(system_prompt, model=model, effort=effort)
+    return cls(system_prompt, model=model, effort=effort, provider=provider)
 
 
 def list_backends() -> list:
