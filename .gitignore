@@ -7,3 +7,4 @@ build/
 *.egg
 .eggs/
 old/
+skill_swap_signup.txt
