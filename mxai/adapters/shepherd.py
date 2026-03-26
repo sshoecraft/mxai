@@ -23,12 +23,7 @@ class ShepherdAdapter(Adapter):
             "--json",
             "--system-prompt", self.system_prompt,
         ]
-        if self.provider:
-            cmd.extend(["--provider", self.provider])
-        if self.model:
-            cmd.extend(["--model", self.model])
-        if self.effort:
-            cmd.extend(["--reasoning", self.effort])
+        cmd.extend(self.extra_args)
         return cmd
 
     def build_env(self) -> dict:

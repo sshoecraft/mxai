@@ -18,9 +18,8 @@ class ClaudeAdapter(Adapter):
 
     backend_name = "claude"
 
-    def __init__(self, system_prompt: str, model: str = None, effort: str = None,
-                 provider: str = None):
-        super().__init__(system_prompt, model, effort, provider=provider)
+    def __init__(self, system_prompt: str, extra_args: list = None):
+        super().__init__(system_prompt, extra_args=extra_args)
         self.session_id = str(uuid.uuid4())
 
     def build_command(self) -> list:
@@ -33,10 +32,7 @@ class ClaudeAdapter(Adapter):
             "--verbose",
             "--system-prompt", self.system_prompt,
         ]
-        if self.model:
-            cmd.extend(["--model", self.model])
-        if self.effort:
-            cmd.extend(["--effort", self.effort])
+        cmd.extend(self.extra_args)
         return cmd
 
     def build_env(self) -> dict:

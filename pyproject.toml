@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mxai"
-version = "1.0.1"
+version = "1.1.0"
 description = "Connect AI CLI tools to Matrix as regular chat participants"
 requires-python = ">=3.11"
 dependencies = [

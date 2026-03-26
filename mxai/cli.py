@@ -1,12 +1,12 @@
 """mxai CLI — connect AI backends to Matrix.
 
 Usage:
-    mxai start [PROFILE] [--server URL] [--name NAME] [--backend BACKEND]
-                    [--role ROLE] [--register] [--username U] [--password P]
+    mxai start [--profile PROFILE] [--server URL] [--name NAME] [--backend BACKEND]
+               [--role ROLE] [--register] [--username U] [--password P] [ADAPTER_ARGS...]
     mxai backends
     mxai version
 
-v0.1.1
+v0.1.2
 """
 
 import argparse
@@ -39,10 +39,8 @@ def cmd_start(args):
         "register": args.register if args.register else None,
         "username": args.username,
         "password": args.password,
-        "model": args.model,
-        "effort": args.effort,
         "room": args.room,
-        "provider": args.provider,
+        "verbose": args.verbose if args.verbose else None,
     }
 
     config = merge_config(file_config, cli_args)
@@ -74,22 +72,16 @@ def cmd_start(args):
         username=config.get("username"),
         password=config.get("password"),
         do_register=config.get("register", False),
-        model=config.get("model"),
-        effort=config.get("effort"),
         room=config.get("room", "General"),
-        provider=config.get("provider"),
+        verbose=config.get("verbose", False),
+        extra_args=args.extra_args,
     )
 
     print(f"mxai v{VERSION}", flush=True)
     print(f"  server: {config['server']}", flush=True)
     print(f"  name: {config['name']}", flush=True)
     print(f"  backend: {config['backend']}", flush=True)
-    if config.get("provider"):
-        print(f"  provider: {config['provider']}", flush=True)
-    if config.get("model"):
-        print(f"  model: {config['model']}", flush=True)
-    if config.get("effort"):
-        print(f"  effort: {config['effort']}", flush=True)
+
 
     async def run():
         loop = asyncio.get_running_loop()
@@ -143,9 +135,8 @@ def main():
 
     # start
     start_parser = sub.add_parser("start", help="Start a bot")
-    start_parser.add_argument(
-        "profile", nargs="?", default=None,
-        help="Bot profile name (loads ~/.config/mxai/bots/<profile>.toml)")
+    start_parser.add_argument("profile", nargs="?", default=None,
+                              help="Bot profile name (loads ~/.config/mxai/bots/<profile>.toml)")
     start_parser.add_argument("--server", "-s", default=None,
                               help="Matrix homeserver URL")
     start_parser.add_argument("--name", "-n", default=None,
@@ -162,14 +153,10 @@ def main():
                               help="Matrix username")
     start_parser.add_argument("--password", "-p", default=None,
                               help="Matrix password")
-    start_parser.add_argument("--model", "-m", default=None,
-                              help="Model name (e.g. sonnet, opus, gpt-4o)")
-    start_parser.add_argument("--effort", "-e", default=None,
-                              help="Effort/reasoning level (low, medium, high, max)")
     start_parser.add_argument("--room", default=None,
                               help="Room to auto-join (default: General)")
-    start_parser.add_argument("--provider", default=None,
-                              help="AI provider for the backend (e.g. gemini, anthropic, openai)")
+    start_parser.add_argument("--verbose", "-v", action="store_true", default=False,
+                              help="Show all message traffic and command details")
 
     # backends
     sub.add_parser("backends", help="List available AI backends")
@@ -177,9 +164,19 @@ def main():
     # version
     sub.add_parser("version", help="Show version")
 
-    args = parser.parse_args()
+    # Split on -- to separate mxai args from adapter pass-through args
+    argv = sys.argv[1:]
+    if "--" in argv:
+        split = argv.index("--")
+        extra = argv[split + 1:]
+        argv = argv[:split]
+    else:
+        extra = []
+
+    args = parser.parse_args(argv)
 
     if args.command == "start":
+        args.extra_args = extra
         cmd_start(args)
     elif args.command == "backends":
         cmd_backends(args)

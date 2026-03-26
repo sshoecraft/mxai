@@ -4,7 +4,7 @@ One MXAI = one Matrix user + one AI backend process.
 Messages from Matrix rooms are forwarded to the adapter; adapter
 responses are sent back to the originating room.
 
-v0.1.2
+v0.1.3
 """
 
 import asyncio
@@ -28,9 +28,8 @@ class MXAI:
 
     def __init__(self, homeserver: str, name: str, backend: str, role: str,
                  username: str = None, password: str = None,
-                 do_register: bool = False, model: str = None,
-                 effort: str = None, room: str = "General",
-                 provider: str = None):
+                 do_register: bool = False, room: str = "General",
+                 verbose: bool = False, extra_args: list = None):
         self.homeserver = homeserver
         self.name = name
         self.backend = backend
@@ -38,10 +37,9 @@ class MXAI:
         self.username = username or name
         self.password = password
         self.do_register = do_register
-        self.model = model
-        self.effort = effort
         self.room = room
-        self.provider = provider
+        self.verbose = verbose
+        self.extra_args = extra_args or []
 
         self.matrix_client = None
         self.adapter = None
@@ -198,7 +196,8 @@ class MXAI:
         sender_display = self._get_display_name(room, event.sender)
         formatted = f"[{sender_display}]: {event.body}"
 
-        print(f"  <<< [{room.display_name}] {formatted[:120]}", flush=True)
+        if self.verbose:
+            print(f"  <<< [{room.display_name}] {formatted[:120]}", flush=True)
 
         self.response_queue.append(room.room_id)
         self.adapter.send(formatted)
@@ -206,10 +205,12 @@ class MXAI:
     async def _on_invite(self, room, event):
         """Auto-join rooms we're invited to."""
         if event.membership == "invite" and event.state_key == self.matrix_client.user_id:
-            print(f"  [{self.name}] invited to {room.room_id}, joining...", flush=True)
+            if self.verbose:
+                print(f"  [{self.name}] invited to {room.room_id}, joining...", flush=True)
             resp = await self.matrix_client.join(room.room_id)
             if hasattr(resp, "room_id"):
-                print(f"  [{self.name}] joined {room.room_id}", flush=True)
+                if self.verbose:
+                    print(f"  [{self.name}] joined {room.room_id}", flush=True)
             else:
                 print(f"  [{self.name}] failed to join: {resp}", flush=True)
 
@@ -219,8 +220,7 @@ class MXAI:
         """Create and start the AI adapter subprocess."""
         system_prompt = self._build_system_prompt()
         self.adapter = get_adapter(self.backend, system_prompt,
-                                   model=self.model, effort=self.effort,
-                                   provider=self.provider)
+                                   extra_args=self.extra_args)
 
         self.adapter.on_response = self._on_adapter_response
         self.adapter.on_tool_use = self._on_adapter_tool_use
@@ -278,7 +278,8 @@ class MXAI:
         arg = parts[1].strip() if len(parts) > 1 else ""
 
         if verb == "/leave":
-            print(f"  [{self.name}] leaving {room_id}", flush=True)
+            if self.verbose:
+                print(f"  [{self.name}] leaving {room_id}", flush=True)
             await self.matrix_client.room_leave(room_id)
 
         elif verb == "/join":
@@ -287,10 +288,12 @@ class MXAI:
                 return
             if not room.startswith("#") and not room.startswith("!"):
                 room = f"#{room}:{self.server_name}"
-            print(f"  [{self.name}] joining {room}", flush=True)
+            if self.verbose:
+                print(f"  [{self.name}] joining {room}", flush=True)
             resp = await self.matrix_client.join(room)
             if hasattr(resp, "room_id"):
-                print(f"  [{self.name}] joined {room} ({resp.room_id})", flush=True)
+                if self.verbose:
+                    print(f"  [{self.name}] joined {room} ({resp.room_id})", flush=True)
             else:
                 print(f"  [{self.name}] failed to join {room}: {resp}", flush=True)
 
@@ -300,17 +303,20 @@ class MXAI:
                 return
             if not user.startswith("@"):
                 user = f"@{user}:{self.server_name}"
-            print(f"  [{self.name}] inviting {user} to {room_id}", flush=True)
+            if self.verbose:
+                print(f"  [{self.name}] inviting {user} to {room_id}", flush=True)
             await self.matrix_client.room_invite(room_id, user)
 
         elif verb == "/nick":
             if arg:
-                print(f"  [{self.name}] setting display name to {arg}", flush=True)
+                if self.verbose:
+                    print(f"  [{self.name}] setting display name to {arg}", flush=True)
                 await self.matrix_client.set_displayname(arg)
 
         elif verb == "/topic":
             if arg:
-                print(f"  [{self.name}] setting topic in {room_id}", flush=True)
+                if self.verbose:
+                    print(f"  [{self.name}] setting topic in {room_id}", flush=True)
                 await self.matrix_client.room_put_state(
                     room_id, "m.room.topic", {"topic": arg})
 
@@ -323,7 +329,8 @@ class MXAI:
             message = parts2[1]
             if not user.startswith("@"):
                 user = f"@{user}:{self.server_name}"
-            print(f"  [{self.name}] DM to {user}: {message[:80]}", flush=True)
+            if self.verbose:
+                print(f"  [{self.name}] DM to {user}: {message[:80]}", flush=True)
 
             # Find existing DM room or create one
             dm_room_id = None
@@ -361,9 +368,11 @@ class MXAI:
             self.response_queue.popleft()
         self.response_pending = False
 
-    def _on_adapter_exit(self):
+    def _on_adapter_exit(self, exit_code: int, stderr: str):
         """Adapter process exited — respawn and notify rooms."""
-        print(f"  [{self.name}] adapter process exited, respawning...", flush=True)
+        print(f"  [{self.name}] adapter exited (code {exit_code})", flush=True)
+        if stderr:
+            print(f"  [{self.name}] stderr: {stderr}", flush=True)
         self.response_queue.clear()
 
         asyncio.run_coroutine_threadsafe(
@@ -386,7 +395,8 @@ class MXAI:
 
     async def _send_matrix_message(self, room_id: str, text: str):
         """Send a text message to a Matrix room."""
-        print(f"  >>> [{self.name}]: {text[:120]}", flush=True)
+        if self.verbose:
+            print(f"  >>> [{self.name}]: {text[:120]}", flush=True)
 
         await self.matrix_client.room_send(
             room_id=room_id,

@@ -3,7 +3,7 @@
 Each adapter knows how to spawn a specific AI CLI tool, send messages
 to it via stdin, and parse responses from its stdout.
 
-v0.1.1
+v0.1.2
 """
 
 import subprocess
@@ -14,19 +14,17 @@ from abc import ABC, abstractmethod
 class Adapter(ABC):
     """Base class for AI backend adapters."""
 
-    def __init__(self, system_prompt: str, model: str = None, effort: str = None,
-                 provider: str = None):
+    def __init__(self, system_prompt: str, extra_args: list = None):
         self.system_prompt = system_prompt
-        self.model = model
-        self.effort = effort
-        self.provider = provider
+        self.extra_args = extra_args or []
         self.proc = None
         self.on_response = None    # callback: fn(text: str)
         self.on_tool_use = None    # callback: fn(name: str, desc: str)
         self.on_result = None      # callback: fn(cost: float, turns: int)
-        self.on_exit = None        # callback: fn()
+        self.on_exit = None        # callback: fn(exit_code: int, stderr: str)
         self.stdout_thread = None
         self.stderr_thread = None
+        self.stderr_output = ""
 
     @property
     @abstractmethod
@@ -95,10 +93,15 @@ class Adapter(ABC):
         try:
             self.parse_stdout()
         finally:
+            exit_code = self.proc.wait() if self.proc else -1
+            if self.stderr_thread:
+                self.stderr_thread.join(timeout=5)
             if self.on_exit:
-                self.on_exit()
+                self.on_exit(exit_code, self.stderr_output)
 
     def _drain_stderr(self):
-        """Read stderr to prevent pipe blocking."""
+        """Read stderr and capture output."""
+        lines = []
         for line in self.proc.stderr:
-            pass
+            lines.append(line.decode("utf-8", errors="replace") if isinstance(line, bytes) else line)
+        self.stderr_output = "".join(lines).strip()
