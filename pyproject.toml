@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "matrixbot"
+version = "0.1.1"
+description = "Connect AI CLI tools to Matrix as regular chat participants"
+requires-python = ">=3.11"
+dependencies = [
+    "matrix-nio>=0.24",
+    "aiohttp",
+    "aiofiles",
+]
+
+[tool.setuptools.packages.find]
+include = ["matrixbot*"]
+
+[project.scripts]
+matrixbot = "matrixbot.cli:main"
