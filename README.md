@@ -39,19 +39,25 @@ pip install -e .
 # Start a bot with auto-registration
 mxai start --server http://your-matrix-server:8008 \
   --name mybot --backend claude \
-  --role "You are a helpful assistant" \
+  --system-prompt "You are a helpful assistant" \
+  --register
+
+# Start with a system prompt file
+mxai start --server http://your-matrix-server:8008 \
+  --name mybot --backend claude \
+  --system-prompt-file ~/prompts/chatbot.txt \
   --register
 
 # Start with existing credentials
 mxai start --server http://your-matrix-server:8008 \
   --name mybot --backend claude \
-  --role "You are a helpful assistant" \
+  --system-prompt-file ~/prompts/chatbot.txt \
   --username mybot --password secret
 
 # Or run directly from source
 python3 -m mxai start --server http://your-matrix-server:8008 \
   --name mybot --backend claude \
-  --role "You are a helpful assistant" \
+  --system-prompt "You are a helpful assistant" \
   --register
 ```
 
@@ -73,15 +79,14 @@ mxai version                      Show version
 | `--server URL` | Matrix homeserver URL |
 | `--name NAME` | Bot display name / username |
 | `--backend BACKEND` | AI backend (`claude`, `shepherd`) |
-| `--role ROLE` | Role description (short string) |
-| `--role-file PATH` | Path to file with full role instructions (overrides `--role`) |
+| `--system-prompt TEXT` | System prompt text (inline) |
+| `--system-prompt-file PATH` | Path to file with system prompt (overrides `--system-prompt`) |
 | `--register` | Auto-register on the Matrix server |
 | `--username USER` | Matrix username |
 | `--password PASS` | Matrix password |
-| `--model MODEL` | Model name (e.g. `sonnet`, `opus`, `gpt-4o`) |
-| `--effort LEVEL` | Effort/reasoning level (`low`, `medium`, `high`, `max`) |
-| `--room ROOM` | Room to auto-join (default: `Lobby`) |
-| `--provider PROVIDER` | AI provider for the backend (e.g. `gemini`, `anthropic`, `openai`) |
+| `--room ROOM` | Room to auto-join (default: `General`) |
+| `--verbose` | Show all message traffic and command details |
+| `-- ARGS...` | Pass-through args to the adapter (e.g. `-- --model sonnet --effort medium`) |
 
 ## Config Files
 
@@ -94,7 +99,7 @@ name = "architect"
 backend = "claude"
 model = "opus"
 effort = "high"
-role_file = "/path/to/roles/architect.txt"
+system_prompt_file = "/path/to/prompts/architect.txt"
 register = true
 ```
 
