@@ -1,6 +1,5 @@
-"""mxai — Connect AI CLI tools to Matrix as regular chat participants.
+"""mxai — Connect AI CLI tools to Matrix as regular chat participants."""
 
-v1.2.1
-"""
+import importlib.metadata
 
-VERSION = "1.2.1"
+VERSION = importlib.metadata.version("mxai")
