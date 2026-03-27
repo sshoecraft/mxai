@@ -4,11 +4,12 @@ One MXAI = one Matrix user + one AI backend process.
 Messages from Matrix rooms are forwarded to the adapter; adapter
 responses are sent back to the originating room.
 
-v0.2.0
+v0.2.1
 """
 
 import asyncio
 import collections
+import json
 import time
 from urllib.parse import urlparse
 
@@ -195,13 +196,17 @@ class MXAI:
             return
 
         sender_display = self._get_display_name(room, event.sender)
-        formatted = f"[{sender_display}]: {event.body}"
+        msg = json.dumps({
+            "sender": sender_display,
+            "mxid": event.sender,
+            "message": event.body,
+        })
 
         if self.verbose:
-            print(f"  <<< [{room.display_name}] {formatted[:120]}", flush=True)
+            print(f"  <<< [{room.display_name}] {sender_display}: {event.body[:120]}", flush=True)
 
         self.response_queue.append(room.room_id)
-        self.adapter.send(formatted)
+        self.adapter.send(msg)
 
     async def _on_invite(self, room, event):
         """Auto-join rooms we're invited to."""
@@ -425,10 +430,10 @@ class MXAI:
         parts = [f"""You are "{self.name}", a participant on a Matrix chat server.
 
 ## Message format
-Messages from the chatroom arrive as:
-[DisplayName]: message text
+Messages from the chatroom arrive as JSON events:
+{{"sender": "DisplayName", "mxid": "@user:server", "message": "their message text"}}
 
-Your response is sent to the room automatically. Just write naturally — your text becomes a message in the room.
+Your response is sent to the room automatically. Just write naturally — your plain text response becomes a message in the room. Do NOT format your response as JSON. Do NOT include sender/mxid fields in your output. You are a single participant — just write your message.
 
 ## Room commands
 You can perform room actions by putting these commands on their own line:
