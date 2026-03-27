@@ -7,6 +7,7 @@ v0.2.0
 
 import json
 import os
+import tempfile
 
 from .base import Adapter
 
@@ -17,14 +18,29 @@ class ShepherdAdapter(Adapter):
 
     backend_name = "shepherd"
 
+    def __init__(self, system_prompt: str, extra_args: list = None):
+        super().__init__(system_prompt, extra_args=extra_args)
+        self.prompt_file = None
+
     def build_command(self) -> list:
+        self.prompt_file = tempfile.NamedTemporaryFile(
+            mode="w", prefix="mxai_", suffix=".txt",
+            dir="/tmp", delete=False)
+        self.prompt_file.write(self.system_prompt)
+        self.prompt_file.close()
+
         cmd = [
             SHEPHERD_BIN,
             "--json",
-            "--system-prompt", self.system_prompt,
+            "--system-prompt-file", self.prompt_file.name,
         ]
         cmd.extend(self.extra_args)
         return cmd
+
+    def cleanup(self):
+        if self.prompt_file and os.path.exists(self.prompt_file.name):
+            os.unlink(self.prompt_file.name)
+            self.prompt_file = None
 
     def build_env(self) -> dict:
         return dict(os.environ)

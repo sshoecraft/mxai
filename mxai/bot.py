@@ -4,7 +4,7 @@ One MXAI = one Matrix user + one AI backend process.
 Messages from Matrix rooms are forwarded to the adapter; adapter
 responses are sent back to the originating room.
 
-v0.1.3
+v0.2.0
 """
 
 import asyncio
@@ -26,14 +26,15 @@ from .credentials import register, login, save_credentials, load_credentials
 class MXAI:
     """A single AI participant on Matrix."""
 
-    def __init__(self, homeserver: str, name: str, backend: str, role: str,
-                 username: str = None, password: str = None,
-                 do_register: bool = False, room: str = "General",
-                 verbose: bool = False, extra_args: list = None):
+    def __init__(self, homeserver: str, name: str, backend: str,
+                 system_prompt: str = "", username: str = None,
+                 password: str = None, do_register: bool = False,
+                 room: str = "General", verbose: bool = False,
+                 extra_args: list = None):
         self.homeserver = homeserver
         self.name = name
         self.backend = backend
-        self.role = role
+        self.system_prompt = system_prompt
         self.username = username or name
         self.password = password
         self.do_register = do_register
@@ -256,16 +257,10 @@ class MXAI:
             self.loop,
         )
 
-    SILENCE_MARKERS = {
-        "(no response)", "(silence)", "(no reply)", "(none)",
-        "[no response]", "[silence]", "[no reply]", "[none]",
-        "…", "...",
-    }
-
     async def _handle_response(self, room_id: str, message_text: str,
                                commands: list):
         """Send message text and execute any commands."""
-        if message_text and message_text.strip().lower() not in self.SILENCE_MARKERS:
+        if message_text:
             await self._send_matrix_message(room_id, message_text)
 
         for cmd in commands:
@@ -421,20 +416,19 @@ class MXAI:
         return user_id
 
     def _build_system_prompt(self) -> str:
-        """Build the full system prompt for the adapter."""
-        return f"""You are "{self.name}", a participant in a Matrix chat server.
+        """Build the full system prompt for the adapter.
 
-## Environment
-You are connected to a Matrix homeserver as a regular user. You exist in chat rooms alongside humans and other AI agents. You interact exactly like any other Matrix user — you can join rooms, leave rooms, invite people, send messages, and use your tools to do real work.
+        The template covers only the mechanical details of how the bot
+        interacts with Matrix.  All behavioral guidance comes from the
+        user-supplied system prompt appended at the end.
+        """
+        parts = [f"""You are "{self.name}", a participant on a Matrix chat server.
 
-## How this works
+## Message format
 Messages from the chatroom arrive as:
 [DisplayName]: message text
 
 Your response is sent to the room automatically. Just write naturally — your text becomes a message in the room.
-
-## Your role
-{self.role}
 
 ## Room commands
 You can perform room actions by putting these commands on their own line:
@@ -445,25 +439,9 @@ You can perform room actions by putting these commands on their own line:
 /nick <name>    — change your display name
 /topic <text>   — set the room topic
 
-Commands MUST be on their own line starting with /. You can include commands alongside regular text in the same response — text lines are sent as your message, command lines are executed as actions. For example, to leave a room, say goodbye and put /leave on its own line.
+Commands MUST be on their own line starting with /. You can include commands alongside regular text in the same response — text lines are sent as your message, command lines are executed as actions."""]
 
-## Tool use — ALWAYS narrate what you're doing
-You have full tool access (reading files, writing files, running commands, searching the web, etc.). USE your tools when asked to do work.
-CRITICAL: Before using ANY tool, you MUST announce what you're about to do in your response text. The people in this chatroom cannot see your tool calls — they only see your text messages. If you silently use tools without saying anything, it looks like you went quiet for no reason.
+        if self.system_prompt:
+            parts.append(self.system_prompt)
 
-Examples of correct behavior:
-- "Let me read that file." (then use the Read tool)
-- "I'll search for that now." (then use WebSearch)
-- "Running that command to check." (then use Bash)
-- "Writing the updated code to disk." (then use Write)
-
-After the tool completes, report what you found or what happened. The chatroom is your only way to communicate results — no one sees your tool output directly.
-
-## Rules
-- Stay in character for your role at all times
-- Address others by name when responding to them
-- Keep responses focused and concise
-- CRITICAL: Do NOT respond when you have nothing meaningful to add. No "sounds good", no "agreed", no thumbs up, no "standing by", no acknowledgments. Silence is fine. Only speak when you have NEW information, a question, a decision, or actionable content. If someone says something that doesn't require your input, say nothing — do not reply at all.
-- Do NOT repeat what others have already said
-- Do NOT end messages with offers like "let me know if you need anything"
-"""
+        return "\n\n".join(parts)

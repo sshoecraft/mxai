@@ -2,11 +2,12 @@
 
 Usage:
     mxai start [--profile PROFILE] [--server URL] [--name NAME] [--backend BACKEND]
-               [--role ROLE] [--register] [--username U] [--password P] [ADAPTER_ARGS...]
+               [--system-prompt TEXT] [--system-prompt-file FILE]
+               [--register] [--username U] [--password P] [ADAPTER_ARGS...]
     mxai backends
     mxai version
 
-v0.1.2
+v0.2.0
 """
 
 import argparse
@@ -35,7 +36,7 @@ def cmd_start(args):
         "server": args.server,
         "name": args.name,
         "backend": args.backend,
-        "role": args.role,
+        "system_prompt": args.system_prompt,
         "register": args.register if args.register else None,
         "username": args.username,
         "password": args.password,
@@ -45,18 +46,18 @@ def cmd_start(args):
 
     config = merge_config(file_config, cli_args)
 
-    # Load role from file if specified
-    role_file = args.role_file or config.get("role_file")
-    if role_file:
+    # Load system prompt from file if specified
+    prompt_file = args.system_prompt_file or config.get("system_prompt_file")
+    if prompt_file:
         try:
-            with open(role_file) as f:
-                config["role"] = f.read().strip()
+            with open(prompt_file) as f:
+                config["system_prompt"] = f.read().strip()
         except FileNotFoundError:
-            print(f"Role file not found: {role_file}")
+            print(f"System prompt file not found: {prompt_file}")
             sys.exit(1)
 
     # Validate required fields
-    required = ["server", "name", "backend", "role"]
+    required = ["server", "name", "backend"]
     missing = [f for f in required if not config.get(f)]
     if missing:
         print(f"Missing required config: {', '.join(missing)}")
@@ -68,13 +69,13 @@ def cmd_start(args):
         homeserver=config["server"],
         name=config["name"],
         backend=config["backend"],
-        role=config["role"],
+        system_prompt=config.get("system_prompt", ""),
         username=config.get("username"),
         password=config.get("password"),
         do_register=config.get("register", False),
         room=config.get("room", "General"),
         verbose=config.get("verbose", False),
-        extra_args=args.extra_args,
+        extra_args=config.get("adapter_args", []) + args.extra_args,
     )
 
     print(f"mxai v{VERSION}", flush=True)
@@ -143,10 +144,10 @@ def main():
                               help="Bot display name")
     start_parser.add_argument("--backend", "-b", default=None,
                               help="AI backend (claude, shepherd)")
-    start_parser.add_argument("--role", "-r", default=None,
-                              help="Role description (short string)")
-    start_parser.add_argument("--role-file", default=None,
-                              help="Path to file with full role instructions (overrides --role)")
+    start_parser.add_argument("--system-prompt", default=None,
+                              help="System prompt text (inline)")
+    start_parser.add_argument("--system-prompt-file", default=None,
+                              help="Path to file with system prompt (overrides --system-prompt)")
     start_parser.add_argument("--register", action="store_true", default=False,
                               help="Auto-register on the Matrix server")
     start_parser.add_argument("--username", "-u", default=None,

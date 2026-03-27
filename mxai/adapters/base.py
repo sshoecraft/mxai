@@ -75,6 +75,10 @@ class Adapter(ABC):
             target=self._drain_stderr, daemon=True)
         self.stderr_thread.start()
 
+    def cleanup(self):
+        """Clean up any temporary resources. Override in subclasses."""
+        pass
+
     def kill(self):
         """Terminate the subprocess."""
         if self.proc and self.proc.poll() is None:
@@ -83,6 +87,7 @@ class Adapter(ABC):
                 self.proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 self.proc.kill()
+        self.cleanup()
 
     @property
     def alive(self) -> bool:
@@ -96,6 +101,7 @@ class Adapter(ABC):
             exit_code = self.proc.wait() if self.proc else -1
             if self.stderr_thread:
                 self.stderr_thread.join(timeout=5)
+            self.cleanup()
             if self.on_exit:
                 self.on_exit(exit_code, self.stderr_output)
 

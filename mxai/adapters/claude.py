@@ -7,6 +7,7 @@ v0.1.1
 
 import json
 import os
+import tempfile
 import uuid
 
 from .base import Adapter
@@ -21,8 +22,15 @@ class ClaudeAdapter(Adapter):
     def __init__(self, system_prompt: str, extra_args: list = None):
         super().__init__(system_prompt, extra_args=extra_args)
         self.session_id = str(uuid.uuid4())
+        self.prompt_file = None
 
     def build_command(self) -> list:
+        self.prompt_file = tempfile.NamedTemporaryFile(
+            mode="w", prefix="mxai_", suffix=".txt",
+            dir="/tmp", delete=False)
+        self.prompt_file.write(self.system_prompt)
+        self.prompt_file.close()
+
         cmd = [
             CLAUDE_BIN,
             "--print",
@@ -30,10 +38,15 @@ class ClaudeAdapter(Adapter):
             "--output-format", "stream-json",
             "--permission-mode", "bypassPermissions",
             "--verbose",
-            "--system-prompt", self.system_prompt,
+            "--system-prompt-file", self.prompt_file.name,
         ]
         cmd.extend(self.extra_args)
         return cmd
+
+    def cleanup(self):
+        if self.prompt_file and os.path.exists(self.prompt_file.name):
+            os.unlink(self.prompt_file.name)
+            self.prompt_file = None
 
     def build_env(self) -> dict:
         env = dict(os.environ)
