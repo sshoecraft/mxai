@@ -19,8 +19,9 @@ class ClaudeAdapter(Adapter):
 
     backend_name = "claude"
 
-    def __init__(self, system_prompt: str, extra_args: list = None):
-        super().__init__(system_prompt, extra_args=extra_args)
+    def __init__(self, system_prompt: str, extra_args: list = None,
+                 debug: bool = False):
+        super().__init__(system_prompt, extra_args=extra_args, debug=debug)
         self.session_id = str(uuid.uuid4())
         self.prompt_file = None
 
@@ -36,7 +37,7 @@ class ClaudeAdapter(Adapter):
             "--print",
             "--input-format", "stream-json",
             "--output-format", "stream-json",
-            "--permission-mode", "bypassPermissions",
+            "--dangerously-skip-permissions",
             "--verbose",
             "--system-prompt-file", self.prompt_file.name,
         ]

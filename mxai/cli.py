@@ -42,6 +42,7 @@ def cmd_start(args):
         "password": args.password,
         "room": args.room,
         "verbose": args.verbose if args.verbose else None,
+        "debug": args.debug if args.debug else None,
     }
 
     config = merge_config(file_config, cli_args)
@@ -75,6 +76,7 @@ def cmd_start(args):
         do_register=config.get("register", False),
         room=config.get("room", "General"),
         verbose=config.get("verbose", False),
+        debug=config.get("debug", False),
         extra_args=config.get("adapter_args", []) + args.extra_args,
     )
 
@@ -158,6 +160,8 @@ def main():
                               help="Room to auto-join (default: General)")
     start_parser.add_argument("--verbose", "-v", action="store_true", default=False,
                               help="Show all message traffic and command details")
+    start_parser.add_argument("--debug", "-d", action="store_true", default=False,
+                              help="Show full system prompt, adapter command, and enable verbose")
 
     # backends
     sub.add_parser("backends", help="List available AI backends")

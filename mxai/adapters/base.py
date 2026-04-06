@@ -6,6 +6,8 @@ to it via stdin, and parse responses from its stdout.
 v0.1.2
 """
 
+import os
+import signal
 import subprocess
 import threading
 from abc import ABC, abstractmethod
@@ -14,17 +16,17 @@ from abc import ABC, abstractmethod
 class Adapter(ABC):
     """Base class for AI backend adapters."""
 
-    def __init__(self, system_prompt: str, extra_args: list = None):
+    def __init__(self, system_prompt: str, extra_args: list = None,
+                 debug: bool = False):
         self.system_prompt = system_prompt
         self.extra_args = extra_args or []
+        self.debug = debug
         self.proc = None
         self.on_response = None    # callback: fn(text: str)
         self.on_tool_use = None    # callback: fn(name: str, desc: str)
         self.on_result = None      # callback: fn(cost: float, turns: int)
-        self.on_exit = None        # callback: fn(exit_code: int, stderr: str)
+        self.on_exit = None        # callback: fn(exit_code: int)
         self.stdout_thread = None
-        self.stderr_thread = None
-        self.stderr_output = ""
 
     @property
     @abstractmethod
@@ -64,29 +66,32 @@ class Adapter(ABC):
             argv, env=env,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=None,  # inherit parent's stderr
+            start_new_session=True,  # own process group for clean shutdown
         )
 
         self.stdout_thread = threading.Thread(
             target=self._run_stdout_parser, daemon=True)
         self.stdout_thread.start()
 
-        self.stderr_thread = threading.Thread(
-            target=self._drain_stderr, daemon=True)
-        self.stderr_thread.start()
-
     def cleanup(self):
         """Clean up any temporary resources. Override in subclasses."""
         pass
 
     def kill(self):
-        """Terminate the subprocess."""
+        """Terminate the subprocess and its entire process group."""
         if self.proc and self.proc.poll() is None:
-            self.proc.terminate()
+            try:
+                os.killpg(self.proc.pid, signal.SIGTERM)
+            except (ProcessLookupError, PermissionError):
+                pass
             try:
                 self.proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                self.proc.kill()
+                try:
+                    os.killpg(self.proc.pid, signal.SIGKILL)
+                except (ProcessLookupError, PermissionError):
+                    self.proc.kill()
         self.cleanup()
 
     @property
@@ -99,15 +104,6 @@ class Adapter(ABC):
             self.parse_stdout()
         finally:
             exit_code = self.proc.wait() if self.proc else -1
-            if self.stderr_thread:
-                self.stderr_thread.join(timeout=5)
             self.cleanup()
             if self.on_exit:
-                self.on_exit(exit_code, self.stderr_output)
-
-    def _drain_stderr(self):
-        """Read stderr and capture output."""
-        lines = []
-        for line in self.proc.stderr:
-            lines.append(line.decode("utf-8", errors="replace") if isinstance(line, bytes) else line)
-        self.stderr_output = "".join(lines).strip()
+                self.on_exit(exit_code)
